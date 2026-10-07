@@ -11,14 +11,14 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0f172a]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-stone-200 bg-[#FAF6ED]/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/30">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 shadow-lg shadow-emerald-600/25">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-extrabold tracking-tight text-white">
-            REPUTRON<span className="text-emerald-400">.AI</span>
+          <span className="text-xl font-extrabold tracking-tight text-stone-900">
+            REPUTRON<span className="text-emerald-700">.AI</span>
           </span>
         </Link>
 
@@ -29,8 +29,8 @@ export default function Navbar() {
               href={l.href}
               className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
                 pathname === l.href
-                  ? "bg-emerald-500/15 text-emerald-300"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
+                  ? "bg-emerald-600/10 text-emerald-800"
+                  : "text-stone-600 hover:bg-stone-900/5 hover:text-stone-900"
               }`}
             >
               {l.label}
@@ -41,7 +41,7 @@ export default function Navbar() {
         <div className="hidden lg:block">
           <Link
             href="/contact"
-            className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5 hover:bg-emerald-400"
+            className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
           >
             Get Started
           </Link>
@@ -50,14 +50,14 @@ export default function Navbar() {
         <button
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
-          className="rounded-lg border border-white/10 p-2 text-slate-200 transition-colors hover:bg-white/5 lg:hidden"
+          className="rounded-lg border border-stone-300 p-2 text-stone-700 transition-colors hover:bg-stone-900/5 lg:hidden"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {open && (
-        <nav className="border-t border-white/10 px-4 py-3 lg:hidden">
+        <nav className="border-t border-stone-200 bg-[#FAF6ED] px-4 py-3 lg:hidden">
           {NAV_LINKS.map((l) => (
             <Link
               key={l.href}
@@ -65,8 +65,8 @@ export default function Navbar() {
               onClick={() => setOpen(false)}
               className={`block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
                 pathname === l.href
-                  ? "bg-emerald-500/15 text-emerald-300"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
+                  ? "bg-emerald-600/10 text-emerald-800"
+                  : "text-stone-600 hover:bg-stone-900/5 hover:text-stone-900"
               }`}
             >
               {l.label}
@@ -75,7 +75,7 @@ export default function Navbar() {
           <Link
             href="/contact"
             onClick={() => setOpen(false)}
-            className="mt-2 block rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-emerald-400"
+            className="mt-2 block rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-emerald-700"
           >
             Get Started
           </Link>

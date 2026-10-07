@@ -39,17 +39,17 @@ export default function Faq() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="relative bg-[#0f172a] text-white antialiased">
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-emerald-900/20 via-slate-900 to-[#020617]" />
+    <div className="relative bg-[#FAF6ED] text-stone-900 antialiased">
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-emerald-100/70 via-[#FAF6ED] to-[#F1EAD9]" />
 
       <section className="relative mx-auto max-w-3xl px-4 pt-12 text-center lg:px-6 lg:pt-16">
-        <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-1.5 text-xs font-semibold text-emerald-300">
+        <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-600/25 bg-emerald-600/10 px-4 py-1.5 text-xs font-semibold text-emerald-800">
           <MessageCircleQuestion className="h-3.5 w-3.5" /> FAQ
         </p>
         <h1 className="mx-auto mt-5 text-4xl font-extrabold leading-tight lg:text-5xl">
           Questions, answered
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-slate-300">
+        <p className="mx-auto mt-4 max-w-xl text-stone-600">
           Everything shop owners ask before putting ReputronAI to work.
         </p>
       </section>
@@ -60,10 +60,8 @@ export default function Faq() {
           return (
             <div
               key={f.q}
-              className={`overflow-hidden rounded-2xl border backdrop-blur-xl transition-colors ${
-                isOpen
-                  ? "border-emerald-400/30 bg-white/[0.08]"
-                  : "border-white/10 bg-white/[0.06] hover:border-white/20"
+              className={`overflow-hidden rounded-2xl border bg-white shadow-[0_2px_12px_rgba(28,25,23,0.05)] transition-colors ${
+                isOpen ? "border-emerald-600/40" : "border-stone-200 hover:border-stone-300"
               }`}
             >
               <button
@@ -72,13 +70,13 @@ export default function Faq() {
               >
                 <span className="font-bold">{f.q}</span>
                 <ChevronDown
-                  className={`h-5 w-5 shrink-0 text-emerald-400 transition-transform ${
+                  className={`h-5 w-5 shrink-0 text-emerald-700 transition-transform ${
                     isOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
               {isOpen && (
-                <p className="px-5 pb-5 text-sm leading-relaxed text-slate-300">
+                <p className="px-5 pb-5 text-sm leading-relaxed text-stone-600">
                   {f.a}
                 </p>
               )}
@@ -87,10 +85,10 @@ export default function Faq() {
         })}
 
         <div className="pt-4 text-center">
-          <p className="text-sm text-slate-400">Still have questions?</p>
+          <p className="text-sm text-stone-500">Still have questions?</p>
           <Link
             href="/contact"
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5 hover:bg-emerald-400"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
           >
             Contact Us <ArrowRight className="h-4 w-4" />
           </Link>

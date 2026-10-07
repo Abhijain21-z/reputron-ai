@@ -43,32 +43,32 @@ export default function ShareButtons({ url, title, text }: Props) {
   const mail = `mailto:?subject=${encodeURIComponent(title)}&body=${encoded}`;
 
   const btn =
-    "inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-xs font-bold text-white backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-white/10 active:translate-y-0";
+    "inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-xs font-bold text-stone-900 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-600 hover:bg-emerald-50 active:translate-y-0";
 
   return (
     <div className="flex flex-wrap gap-2">
       {canNative && (
         <button onClick={nativeShare} className={btn}>
-          <Share2 className="h-4 w-4 text-emerald-400" /> Share
+          <Share2 className="h-4 w-4 text-emerald-700" /> Share
         </button>
       )}
       <a href={wa} target="_blank" rel="noreferrer" className={btn}>
-        <MessageCircle className="h-4 w-4 text-emerald-400" /> WhatsApp
+        <MessageCircle className="h-4 w-4 text-emerald-700" /> WhatsApp
       </a>
       <a href={sms} className={btn}>
-        <Smartphone className="h-4 w-4 text-emerald-400" /> SMS
+        <Smartphone className="h-4 w-4 text-emerald-700" /> SMS
       </a>
       <a href={mail} className={btn}>
-        <Mail className="h-4 w-4 text-emerald-400" /> Email
+        <Mail className="h-4 w-4 text-emerald-700" /> Email
       </a>
       <button onClick={copy} className={btn}>
         {copied ? (
           <>
-            <Check className="h-4 w-4 text-emerald-400" /> Copied!
+            <Check className="h-4 w-4 text-emerald-700" /> Copied!
           </>
         ) : (
           <>
-            <Copy className="h-4 w-4 text-emerald-400" /> Copy Link
+            <Copy className="h-4 w-4 text-emerald-700" /> Copy Link
           </>
         )}
       </button>
