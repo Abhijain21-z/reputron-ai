@@ -1,40 +1,115 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Award,
   BadgeCheck,
-  CalendarCheck,
-  Copy,
+  BellRing,
   Check,
+  Copy,
   Filter,
+  ListChecks,
   Loader2,
   Lock,
   MapPin,
   MessageSquareText,
   Navigation,
+  QrCode,
   RefreshCcw,
+  Send,
+  Share2,
   ShieldCheck,
   Sparkles,
   Star,
   TrendingUp,
   Zap,
 } from "lucide-react";
+import ShareButtons from "../components/ShareButtons";
+import {
+  buildShareLink,
+  loadInbox,
+  saveInbox,
+  useBusinessProfile,
+  type InboxReview,
+} from "../lib/business";
+
+/* Reads ?shop= & ?city= from shared links */
+function SharedParamsSync() {
+  const params = useSearchParams();
+  const { setShop, setCity } = useBusinessProfile();
+  useEffect(() => {
+    const s = params.get("shop");
+    const c = params.get("city");
+    if (s) setShop(s);
+    if (c) setCity(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+  return null;
+}
+
+const STEPS = [
+  {
+    icon: Send,
+    title: "Send after every job",
+    text: "After detailing, ceramic, or PPF handover, text the client your smart review link. One tap — no app needed.",
+  },
+  {
+    icon: Star,
+    title: "Client rates 1–5 stars",
+    text: "The 30-second mobile funnel captures the rating instantly while the experience is fresh.",
+  },
+  {
+    icon: Filter,
+    title: "Smart routing",
+    text: "4–5 stars go straight to your Google review page. 1–3 stars stay private and land in your dashboard inbox.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Rank higher, win jobs",
+    text: "More 5-star reviews plus keyword-rich AI replies push you into Google's Top 3 Local Map Pack.",
+  },
+];
 
 export default function Home() {
-  /* ---------- FEATURE 1 : Business Personalizer ---------- */
-  const [businessName, setBusinessName] = useState("Apex Auto Spa");
-  const [city, setCity] = useState("Austin, TX");
-  const displayName = businessName || "Apex Auto Spa";
-  const displayCity = city || "Austin, TX";
+  const {
+    shop,
+    setShop,
+    city,
+    setCity,
+    displayName,
+    displayCity,
+    reviewUrl,
+  } = useBusinessProfile();
 
-  /* ---------- FEATURE 2 : Review Funnel ---------- */
+  /* Funnel state */
   const [rating, setRating] = useState<number | null>(null);
   const [hoverStar, setHoverStar] = useState<number | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [privateSent, setPrivateSent] = useState(false);
+
+  /* AI demo state */
+  const [aiReply, setAiReply] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /* Share link (client-side origin) */
+  const [shareUrl, setShareUrl] = useState("/");
+  useEffect(() => {
+    setShareUrl(buildShareLink(displayName, displayCity));
+  }, [displayName, displayCity]);
+
+  const fullAiReply =
+    `Thank you so much for trusting ${displayName} with your Corvette's Full Front PPF! ` +
+    `We're thrilled you loved the attention to detail. As ${displayCity}'s top-rated shop for ` +
+    `auto detailing, ceramic coating, and paint protection film, we use only premium films and ` +
+    `meticulous prep for a flawless finish. Your Corvette is now protected against rock chips, ` +
+    `UV, and road debris here in ${displayCity}. Thanks again for choosing ${displayName}!`;
 
   const resetFunnel = () => {
     setRating(null);
@@ -44,17 +119,24 @@ export default function Home() {
     setPrivateSent(false);
   };
 
-  const scrollToFunnel = () => {
-    document.getElementById("funnel")?.scrollIntoView({ behavior: "smooth" });
+  const submitPrivateFeedback = () => {
+    const item: InboxReview = {
+      id: `demo-${Date.now()}`,
+      name: phoneNumber ? `SMS Client ••${phoneNumber.slice(-4)}` : "Mike (Demo)",
+      rating: rating ?? 2,
+      text: feedbackText || "(No details provided)",
+      service: "Ceramic Coating",
+      date: "Just now",
+      status: "new",
+    };
+    try {
+      const items = loadInbox();
+      saveInbox([item, ...items]);
+    } catch {
+      /* ignore */
+    }
+    setPrivateSent(true);
   };
-
-  /* ---------- FEATURE 3 : AI Auto-Reply ---------- */
-  const [aiReply, setAiReply] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const fullAiReply = `Thank you so much for trusting ${displayName} with your Corvette's Full Front PPF! We're thrilled you loved the attention to detail. As ${displayCity}'s top-rated shop for full front PPF, ceramic coating, and auto detailing, we use only premium films and meticulous prep for a flawless, long-lasting finish. Your Corvette is now protected against rock chips, UV, and road debris here in ${displayCity}. Thanks again for choosing ${displayName} — we appreciate your 5-star support!`;
 
   const generateAiReply = () => {
     if (typingRef.current) clearInterval(typingRef.current);
@@ -72,7 +154,7 @@ export default function Home() {
     }, 15);
   };
 
-  const copyToClipboard = async () => {
+  const copyReply = async () => {
     try {
       await navigator.clipboard.writeText(aiReply || fullAiReply);
     } catch {
@@ -87,64 +169,23 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const scrollToFunnel = () => {
+    document.getElementById("funnel")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const activeStar = hoverStar ?? rating ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white antialiased">
-      {/* Background: fixed radial gradient + blur circle */}
+    <div className="relative bg-[#0f172a] text-white antialiased">
+      <Suspense fallback={null}>
+        <SharedParamsSync />
+      </Suspense>
+
+      {/* Background */}
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-emerald-900/20 via-slate-900 to-[#020617]" />
       <div className="pointer-events-none fixed -top-32 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[140px]" />
-      <div className="pointer-events-none fixed bottom-0 right-0 h-[320px] w-[420px] rounded-full bg-teal-500/10 blur-[120px]" />
 
-      {/* ============ FEATURE 1 : Sticky Header ============ */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0f172a]/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/30">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-extrabold tracking-tight">
-              REPUTRON<span className="text-emerald-400">.AI</span>
-            </span>
-            <span className="ml-2 hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 sm:inline-block">
-              Auto Detailing • Ceramic • PPF
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 backdrop-blur-xl transition-colors focus-within:border-emerald-400/60">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Shop Name
-              </span>
-              <input
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="Apex Auto Spa"
-                className="w-36 bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-500"
-              />
-            </label>
-            <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 backdrop-blur-xl transition-colors focus-within:border-emerald-400/60">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                City
-              </span>
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Austin, TX"
-                className="w-28 bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-500"
-              />
-            </label>
-            <button
-              onClick={scrollToFunnel}
-              className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5 hover:bg-emerald-400 hover:shadow-emerald-400/40 active:translate-y-0"
-            >
-              Preview My Custom Funnel
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ============ Hero ============ */}
+      {/* ============ Hero + Personalizer ============ */}
       <section className="relative mx-auto max-w-7xl px-4 pt-12 text-center lg:px-6 lg:pt-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -153,7 +194,7 @@ export default function Home() {
         >
           <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-1.5 text-xs font-semibold text-emerald-300">
             <Zap className="h-3.5 w-3.5" />
-            AI REVIEW AUTOMATION FOR {displayName.toUpperCase()}
+            AI REVIEW AUTOMATION FOR DETAILING, CERAMIC &amp; PPF SHOPS
           </p>
           <h1 className="mx-auto mt-5 max-w-4xl text-4xl font-extrabold leading-tight tracking-tight lg:text-6xl">
             Turn Every Detail Into a{" "}
@@ -162,31 +203,98 @@ export default function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-slate-300 lg:text-lg">
-            {displayName} in {displayCity} filters unhappy clients privately and
-            pushes happy drivers straight to Google — climbing into the Top 3
-            Local Map Pack on autopilot.
+            ReputronAI routes happy clients straight to Google and intercepts
+            unhappy ones privately — so your shop climbs into the Top 3 Local
+            Map Pack on autopilot.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-xl">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Negative
-              reviews intercepted
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-xl">
-              <Star className="h-3.5 w-3.5 text-amber-400" /> 4.9★ average rating
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-xl">
-              <MapPin className="h-3.5 w-3.5 text-emerald-400" /> #2 in {displayCity}
-            </span>
+
+          {/* Personalizer */}
+          <div className="mx-auto mt-7 flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-xl sm:flex-row sm:items-center">
+            <label className="flex flex-1 items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 transition-colors focus-within:border-emerald-400/60">
+              <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Shop Name
+              </span>
+              <input
+                value={shop}
+                onChange={(e) => setShop(e.target.value)}
+                placeholder="Apex Auto Spa"
+                className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-500"
+              />
+            </label>
+            <label className="flex flex-1 items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 transition-colors focus-within:border-emerald-400/60">
+              <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                City
+              </span>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Austin, TX"
+                className="w-full bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-500"
+              />
+            </label>
+            <button
+              onClick={scrollToFunnel}
+              className="whitespace-nowrap rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5 hover:bg-emerald-400"
+            >
+              Preview My Custom Funnel
+            </button>
           </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Type your shop name — the entire live demo below personalizes
+            instantly.
+          </p>
         </motion.div>
       </section>
 
-      {/* ============ FEATURE 2 + 3 : grid ============ */}
+      {/* ============ How to use (steps) ============ */}
+      <section className="relative mx-auto max-w-7xl px-4 pt-14 lg:px-6">
+        <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
+          How it works
+        </p>
+        <h2 className="mx-auto mt-2 max-w-2xl text-center text-2xl font-bold lg:text-3xl">
+          From job completion to 5-star review in 30 seconds
+        </h2>
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s, i) => (
+            <motion.div
+              key={s.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-emerald-400/30"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/25">
+                  <s.icon className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-3xl font-extrabold text-white/10">
+                  {i + 1}
+                </span>
+              </div>
+              <h3 className="mt-3 font-bold">{s.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-400">
+                {s.text}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+        <div className="mt-5 text-center">
+          <Link
+            href="/how-it-works"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-300 transition-colors hover:text-emerald-200"
+          >
+            Read the full guide <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ============ Funnel + Dashboard preview ============ */}
       <main
         id="funnel"
-        className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-8 px-4 py-12 lg:grid-cols-12 lg:px-6"
+        className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-8 px-4 py-14 lg:grid-cols-12 lg:px-6"
       >
-        {/* ===== LEFT : Phone funnel (5 cols) ===== */}
+        {/* LEFT : Phone funnel */}
         <div className="lg:col-span-5">
           <div className="lg:sticky lg:top-24">
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
@@ -196,12 +304,9 @@ export default function Home() {
               What your customer sees after pickup at {displayName}
             </h2>
 
-            {/* Smartphone mockup */}
             <div className="mx-auto w-[340px] rounded-[48px] border border-white/10 bg-black p-2.5 shadow-[0_30px_80px_-20px_rgba(16,185,129,0.35)]">
               <div className="relative overflow-hidden rounded-[38px] bg-slate-950">
-                {/* Notch */}
                 <div className="absolute left-1/2 top-2.5 z-20 h-7 w-28 -translate-x-1/2 rounded-full bg-black ring-1 ring-white/10" />
-                {/* Status bar */}
                 <div className="flex items-center justify-between px-7 pb-1 pt-3 text-[11px] font-semibold text-slate-300">
                   <span>9:41</span>
                   <span className="flex items-center gap-1">
@@ -209,7 +314,6 @@ export default function Home() {
                     5G
                   </span>
                 </div>
-                {/* SMS header */}
                 <div className="flex items-center gap-3 border-b border-white/5 bg-slate-900/80 px-5 py-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-sm font-extrabold">
                     {displayName.charAt(0).toUpperCase()}
@@ -221,10 +325,8 @@ export default function Home() {
                   <MessageSquareText className="ml-auto h-5 w-5 text-slate-500" />
                 </div>
 
-                {/* Screen body */}
                 <div className="min-h-[520px] bg-gradient-to-b from-slate-900 to-[#020617] p-4">
                   <AnimatePresence mode="wait">
-                    {/* SCREEN 1 : Trigger */}
                     {rating === null && (
                       <motion.div
                         key="screen1"
@@ -243,9 +345,7 @@ export default function Home() {
                           </span>
                         </div>
                         <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-center backdrop-blur-xl">
-                          <p className="text-sm font-bold">
-                            Tap a star to rate us
-                          </p>
+                          <p className="text-sm font-bold">Tap a star to rate us</p>
                           <p className="mb-3 text-[11px] text-slate-400">
                             Takes 5 seconds
                           </p>
@@ -276,7 +376,6 @@ export default function Home() {
                       </motion.div>
                     )}
 
-                    {/* SCREEN 2A : 4-5 stars */}
                     {rating !== null && rating >= 4 && (
                       <motion.div
                         key="screen2a"
@@ -286,22 +385,15 @@ export default function Home() {
                         transition={{ duration: 0.25 }}
                         className="relative space-y-4 overflow-hidden rounded-2xl border border-emerald-400/20 bg-emerald-950/30 p-4 text-center"
                       >
-                        {/* 20 confetti particles */}
                         <div className="pointer-events-none absolute inset-0">
                           {Array.from({ length: 20 }).map((_, i) => (
                             <motion.span
                               key={i}
-                              initial={{
-                                opacity: 1,
-                                x: 0,
-                                y: -10,
-                                rotate: 0,
-                                scale: 1,
-                              }}
+                              initial={{ opacity: 1, x: 0, y: -10, rotate: 0, scale: 1 }}
                               animate={{
                                 opacity: 0,
-                                x: (i % 2 === 0 ? 1 : -1) * (20 + (i * 13) % 90),
-                                y: 220 + (i * 17) % 140,
+                                x: (i % 2 === 0 ? 1 : -1) * (20 + ((i * 13) % 90)),
+                                y: 220 + ((i * 17) % 140),
                                 rotate: 360 + i * 40,
                                 scale: 0.6,
                               }}
@@ -312,13 +404,7 @@ export default function Home() {
                                 ease: "easeOut",
                               }}
                               className={`absolute left-1/2 top-6 h-2 w-2 rounded-[2px] ${
-                                [
-                                  "bg-emerald-400",
-                                  "bg-amber-400",
-                                  "bg-cyan-300",
-                                  "bg-white",
-                                  "bg-teal-300",
-                                ][i % 5]
+                                ["bg-emerald-400", "bg-amber-400", "bg-cyan-300", "bg-white", "bg-teal-300"][i % 5]
                               }`}
                             />
                           ))}
@@ -336,7 +422,7 @@ export default function Home() {
                             911. One tap posts your 5 stars to Google.
                           </p>
                           <a
-                            href="https://www.google.com/maps"
+                            href={reviewUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/40 transition-all hover:-translate-y-0.5 hover:bg-emerald-400 active:translate-y-0"
@@ -360,7 +446,6 @@ export default function Home() {
                       </motion.div>
                     )}
 
-                    {/* SCREEN 2B : 1-3 stars */}
                     {rating !== null && rating <= 3 && (
                       <motion.div
                         key="screen2b"
@@ -395,7 +480,7 @@ export default function Home() {
                               className="w-full rounded-xl border border-white/10 bg-slate-900 p-3 text-xs text-white outline-none transition-colors placeholder:text-slate-500 focus:border-amber-400/60"
                             />
                             <button
-                              onClick={() => setPrivateSent(true)}
+                              onClick={submitPrivateFeedback}
                               className="w-full rounded-xl bg-amber-500 px-4 py-3 text-sm font-extrabold text-black shadow-lg shadow-amber-500/30 transition-all hover:-translate-y-0.5 hover:bg-amber-400 active:translate-y-0"
                             >
                               Send Private Feedback
@@ -423,7 +508,8 @@ export default function Home() {
                             <p className="mt-1 text-xs text-slate-300">
                               The owner of {displayName} will call{" "}
                               {phoneNumber || "you"} shortly. Nothing was posted
-                              to Google.
+                              to Google — it&apos;s already in the owner&apos;s
+                              dashboard inbox.
                             </p>
                             <button
                               onClick={resetFunnel}
@@ -443,22 +529,25 @@ export default function Home() {
               </div>
             </div>
             <p className="mt-4 text-center text-xs text-slate-500">
-              👆 Try it: tap 5 stars, then reset and tap 2 stars to see the
-              private-save flow.
+              Try it: tap 5 stars, then reset and tap 2 stars — the private
+              feedback lands in your{" "}
+              <Link href="/dashboard" className="font-bold text-emerald-300 hover:text-emerald-200">
+                dashboard inbox
+              </Link>
+              .
             </p>
           </div>
         </div>
 
-        {/* ===== RIGHT : Dashboard (7 cols) ===== */}
+        {/* RIGHT : Metrics + AI demo */}
         <div className="lg:col-span-7">
           <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
-            Detailer ROI &amp; Control Dashboard
+            Owner Results Snapshot
           </p>
           <h2 className="text-2xl font-bold lg:text-3xl">
             {displayName} — {displayCity} performance
           </h2>
 
-          {/* Metrics 2x2 */}
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-emerald-400/30">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -477,9 +566,7 @@ export default function Home() {
               <p className="mt-2 text-4xl font-extrabold">
                 4.9 <span className="text-2xl text-amber-400">★</span>
               </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Top 1% in {displayCity}
-              </p>
+              <p className="mt-1 text-xs text-slate-400">Top 1% in {displayCity}</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-emerald-400/30">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -503,7 +590,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* AI Auto-Reply Generator */}
+          {/* AI demo */}
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-emerald-400" />
@@ -512,14 +599,10 @@ export default function Home() {
                 SEO-optimized
               </span>
             </div>
-
             <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
               <div className="flex items-center gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
-                  />
+                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                 ))}
                 <span className="ml-2 text-xs text-slate-400">
                   Michael R. • Google review
@@ -530,7 +613,6 @@ export default function Home() {
                 work and attention to detail!&rdquo;
               </p>
             </div>
-
             <button
               onClick={generateAiReply}
               disabled={isTyping}
@@ -538,8 +620,8 @@ export default function Home() {
             >
               {isTyping ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Typing
-                  SEO reply…
+                  <Loader2 className="h-4 w-4 animate-spin" /> Typing SEO
+                  reply…
                 </>
               ) : (
                 <>
@@ -547,14 +629,11 @@ export default function Home() {
                 </>
               )}
             </button>
-
             {(aiReply || isTyping) && (
               <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4">
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300">
                   <BadgeCheck className="h-3.5 w-3.5" /> Reply for {displayName}
-                  {isTyping && (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  )}
+                  {isTyping && <Loader2 className="h-3 w-3 animate-spin" />}
                 </p>
                 <p className="min-h-[80px] whitespace-pre-wrap text-sm leading-relaxed text-emerald-50">
                   {aiReply}
@@ -564,8 +643,8 @@ export default function Home() {
                 </p>
                 {!isTyping && aiReply && (
                   <button
-                    onClick={copyToClipboard}
-                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-400 active:translate-y-0"
+                    onClick={copyReply}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-400"
                   >
                     {copied ? (
                       <>
@@ -573,71 +652,121 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3.5 w-3.5" /> Copy &amp; Post to
-                        Google
+                        <Copy className="h-3.5 w-3.5" /> Copy &amp; Post to Google
                       </>
                     )}
                   </button>
                 )}
               </div>
             )}
-            <p className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500">
-              <MapPin className="h-3 w-3" /> Auto-includes {displayName} +{" "}
-              {displayCity} + service keywords for Map Pack rankings.
-            </p>
           </div>
+
+          <Link
+            href="/dashboard"
+            className="mt-5 flex items-center justify-between rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400/50"
+          >
+            <span className="flex items-center gap-3">
+              <ListChecks className="h-6 w-6 text-emerald-300" />
+              <span>
+                <span className="block font-bold">
+                  Open the owner dashboard
+                </span>
+                <span className="block text-xs text-slate-400">
+                  Review inbox, AI replies, SMS tools, QR code &amp; settings
+                </span>
+              </span>
+            </span>
+            <ArrowRight className="h-5 w-5 shrink-0 text-emerald-300" />
+          </Link>
         </div>
       </main>
 
-      {/* ============ FEATURE 4 : CTA ============ */}
-      <section className="relative mx-auto max-w-5xl px-4 pb-24 pt-4 lg:px-6">
+      {/* ============ Share ============ */}
+      <section className="relative mx-auto max-w-5xl px-4 pb-4 lg:px-6">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur-xl lg:p-8">
+          <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-lg shadow-emerald-500/25">
+              <Share2 className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h2 className="flex items-center gap-2 text-xl font-bold">
+                Share this demo for {displayName}
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Send your personalized funnel to a partner, manager, or client.
+                The link opens this page pre-filled with {displayName} in{" "}
+                {displayCity}.
+              </p>
+              <p className="mt-2 break-all rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[11px] text-emerald-300">
+                {shareUrl}
+              </p>
+              <div className="mt-3">
+                <ShareButtons
+                  url={shareUrl}
+                  title={`${displayName} — Review Funnel Demo`}
+                  text={`See how ${displayName} turns jobs into 5-star Google reviews:`}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 border-t border-white/10 pt-5 text-sm text-slate-400 sm:grid-cols-3">
+            <p className="flex items-start gap-2">
+              <BellRing className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              Text it to your next customer right after handover.
+            </p>
+            <p className="flex items-start gap-2">
+              <QrCode className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              Print the dashboard QR code for your front counter.
+            </p>
+            <p className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+              Every 5-star review lifts {displayName} in {displayCity} search.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ CTA ============ */}
+      <section className="relative mx-auto max-w-5xl px-4 pb-24 pt-8 lg:px-6">
         <div className="rounded-[32px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 p-[1px] shadow-[0_20px_80px_-20px_rgba(16,185,129,0.5)]">
           <div className="rounded-[31px] bg-slate-900 px-6 py-10 text-center lg:px-12">
             <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-1.5 text-xs font-semibold text-emerald-300">
-              <CalendarCheck className="h-3.5 w-3.5" /> Free 14-day setup •
-              Valued at $500
+              <ShieldCheck className="h-3.5 w-3.5" /> Done-for-you setup for
+              detailing pros
             </p>
             <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-extrabold leading-tight lg:text-4xl">
-              Want this automated system set up for {displayName} this week?
+              Get this automated system running for {displayName} this week
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-slate-300">
-              Test it on your next 10 clients with zero risk. Valued at $500 —
-              Yours Free for 14 Days.
+              We configure your review funnel, Google link, SMS templates, and
+              AI replies — personalized for your shop and city.
             </p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <a
-                href="mailto:jaintechsolution9@gmail.com?subject=Claim 14-Day Free Trial"
+              <Link
+                href="/contact"
                 className="rounded-2xl bg-emerald-500 px-8 py-4 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/40 transition-all hover:-translate-y-0.5 hover:bg-emerald-400 active:translate-y-0"
               >
-                Claim 14-Day Free Trial
-              </a>
-              <a
-                href="mailto:jaintechsolution9@gmail.com?subject=Book 15-Minute Setup Call"
+                Get Started
+              </Link>
+              <Link
+                href="/pricing"
                 className="rounded-2xl border border-white/15 bg-white/[0.06] px-8 py-4 text-sm font-extrabold text-white backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-emerald-400/40 hover:bg-white/10 active:translate-y-0"
               >
-                Book 15-Minute Setup Call
-              </a>
+                View Plans
+              </Link>
             </div>
-            <p className="mt-6 text-xs text-slate-400">
-              Powered by Jain Tech Solution | Contact:
-              jaintechsolution9@gmail.com
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              © 2025 ReputronAI. Built for US Auto Detailing, Ceramic &amp; PPF
-              Pros.
-            </p>
           </div>
         </div>
       </section>
 
       {/* Mobile sticky banner */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#0f172a]/95 p-3 backdrop-blur-xl lg:hidden">
-        <a
-          href="mailto:jaintechsolution9@gmail.com?subject=Claim 14-Day Free Trial"
+        <Link
+          href="/contact"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/40 transition-all hover:bg-emerald-400 active:scale-[0.98]"
         >
-          Claim Free Trial for {displayName}
-        </a>
+          Get Started for {displayName}
+        </Link>
       </div>
       <div className="h-16 lg:hidden" />
     </div>
